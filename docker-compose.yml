@@ -1,0 +1,57 @@
+version: "3.2"
+
+services:
+  web-nginx:
+    image: nginx:alpine
+    container_name: project-web-nginx
+    working_dir: /var/www/html
+    volumes:
+      - ./app:/var/www/html
+      - ./Docker/nginx/nginx.conf:/etc/nginx/conf.d/app.conf
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - internal
+
+  php:
+    build: 
+      context: Docker/php
+    container_name: project-php
+    environment:
+      XDEBUG_CONFIG: "remote_host=192.168.228.5 remote_enable=1"
+      PHP_IDE_CONFIG: "serverName=Docker"
+    volumes:
+      - ./app:/var/www/html
+      - ./Docker/php/config:/usr/local/etc/php/custom.d
+    working_dir: /var/www/html
+    networks:
+      - internal
+
+  db:
+    image: mariadb
+    container_name: project-mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: 123
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    volumes:
+      - ./database:/var/lib/mysql
+      - ./Docker/db/db.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    networks:
+      - internal
+
+  adminer:
+    image: adminer
+    container_name: project-adminer
+    ports:
+      - 8080:8080
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.228.5/28
